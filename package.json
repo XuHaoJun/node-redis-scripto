@@ -1,6 +1,6 @@
 {
-  "name": "redis-scripto",
-  "version": "0.2.0",
+  "name": "gitter-redis-scripto",
+  "version": "0.2.2",
   "description": "Redis Lua Script Manager for NodeJS",
   "keywords": [
     "redis",
