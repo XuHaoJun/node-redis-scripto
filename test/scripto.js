@@ -11,7 +11,7 @@ suite('Scripto', function() {
     suite('eval', function() {
 
         test('running normally', _clean(function(done) {
-            
+
             var s = new Scripto(redisClient);
             s.loadFromDir(scriptDir);
             s.eval('read-write', ['helloKey'], [200], function(err, result) {
@@ -23,7 +23,7 @@ suite('Scripto', function() {
         }));
 
         test('running non-existing script', _clean(function(done) {
-            
+
             var s = new Scripto(redisClient);
             s.loadFromDir(scriptDir);
             s.eval('no-such-script', ['helloKey'], [200], function(err, result) {
@@ -38,7 +38,7 @@ suite('Scripto', function() {
     suite('evalSha', function() {
 
         test('failed at initial call', _clean(function(done) {
-            
+
             var s = new Scripto(redisClient);
             s.loadFromDir(scriptDir);
             s.evalSha('read-write', ['helloKey'], [200], function(err, result) {
@@ -50,12 +50,12 @@ suite('Scripto', function() {
         }));
 
         test('success at runs after script loaded (some millis later)', _clean(function(done) {
-            
+
             var s = new Scripto(redisClient);
             s.loadFromDir(scriptDir);
 
             setTimeout(function() {
-                
+
                 s.evalSha('read-write', ['hello2Key'], [300], afterEvalSha);
             }, 100);
 
@@ -71,7 +71,7 @@ suite('Scripto', function() {
     suite('run', function() {
 
         test('success at initial call', _clean(function(done) {
-            
+
             var s = new Scripto(redisClient);
             s.loadFromDir(scriptDir);
             s.run('read-write', ['helloKey'], [200], function(err, result) {
@@ -83,12 +83,12 @@ suite('Scripto', function() {
         }));
 
         test('success at runs after script loaded (some millis later, then uses sha)', _clean(function(done) {
-            
+
             var s = new Scripto(redisClient);
             s.loadFromDir(scriptDir);
 
             setTimeout(function() {
-                
+
                 s.run('read-write', ['hello2Key'], [300], afterEvalSha);
             }, 100);
 
@@ -143,6 +143,52 @@ suite('Scripto', function() {
             });
         });
 
+    }));
+
+    test('script exists after load', _clean(function(done) {
+
+      var s = new Scripto(redisClient);
+      s.loadFromDir(scriptDir);
+      s.run('read-write', ['helloKey'], [200], function(err, result) {
+          assert.equal(err, undefined);
+          assert.equal(result, 200);
+
+          assert(s._scriptShas['read-write']);
+          redisClient.script('EXISTS', 'f4054baaab2e7f522a4768b5a5d316b6c8a5406c', function(err, result) {
+            if (err) return done(err);
+            assert.strictEqual(result[0], 1);
+
+            done();
+          });
+
+      });
+    }));
+
+    test('script is reloaded', _clean(function(done) {
+
+      var s = new Scripto(redisClient);
+      s.loadFromDir(scriptDir);
+      s.run('read-write', ['helloKey'], [200], function(err, result) {
+          assert.equal(err, undefined);
+          assert.equal(result, 200);
+
+          redisClient.script('FLUSH', function(err) {
+            if (err) return done(err);
+            redisClient.script('EXISTS', 'f4054baaab2e7f522a4768b5a5d316b6c8a5406c', function(err, result) {
+              if (err) return done(err);
+              assert.strictEqual(result[0], 0);
+
+              s.run('read-write', ['helloKey'], [200], function(err, result) {
+                  assert.equal(err, undefined);
+                  assert.equal(result, 200);
+                  done();
+              });
+
+            });
+
+          });
+
+      });
     }));
 
 });
